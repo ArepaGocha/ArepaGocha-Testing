@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi base de práctica</title>
+
+  <!-- Tipografía redondeada y amable (se descarga de Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===========================================================
+       1. ESTILOS GENERALES
+       =========================================================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      /* Si Nunito no carga, el navegador usa la siguiente de la lista */
+      font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+      background-color: #ffffff;
+      color: #1a1a1a;
+    }
+
+    /* ===========================================================
+       2. ENCABEZADO (la barra horizontal azul)
+       =========================================================== */
+    header {
+      background-color: #6D9BF8;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    nav {
+      display: flex;
+      gap: 4px;
+      height: 100%;
+    }
+
+    /* ===========================================================
+       3. CADA BOTÓN Y SU MENÚ
+       =========================================================== */
+    .menu {
+      position: relative;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .menu > button {
+      background-color: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .opciones {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 200px;
+      background-color: #ffffff;
+      border: 1px solid #cdd9f4;
+      border-radius: 0 0 12px 12px;
+      overflow: hidden;
+      list-style: none;
+      box-shadow: 0 6px 14px rgba(40, 70, 130, 0.15);
+    }
+
+    .menu:hover .opciones,
+    .menu:focus-within .opciones {
+      display: block;
+    }
+
+    .menu:hover > button,
+    .menu:focus-within > button {
+      background-color: #5987e6;
+    }
+
+    .opciones a {
+      display: block;
+      padding: 11px 16px;
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .opciones a:hover {
+      background-color: #eaf0fe;
+    }
+
+    /* ===========================================================
+       4. SECCIONES DE LA PÁGINA (tu espacio de trabajo)
+       =========================================================== */
+    main {
+      padding: 24px;
+    }
+
+    section {
+      min-height: 80vh;
+      scroll-margin-top: 60px;
+    }
+
+    /* ===========================================================
+       5. VENTANA DEL EDITOR DE VIDEO
+       =========================================================== */
+    .ventana {
+      position: fixed;
+      inset: 0;                       /* cubre toda la pantalla */
+      background: rgba(20, 35, 65, 0.55);
+      display: none;                  /* oculta hasta que se abre */
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 200;
+    }
+
+    .ventana.abierta {
+      display: flex;
+    }
+
+    .ventana-caja {
+      background: #ffffff;
+      width: min(960px, 100%);
+      max-height: 100%;
+      overflow-y: auto;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(20, 35, 65, 0.3);
+    }
+
+    .ventana-barra {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e6ecf9;
+    }
+
+    .ventana-barra h2 {
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .cerrar {
+      border: none;
+      background: #f0f4fd;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-size: 18px;
+      color: #44557a;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .cerrar:hover { background: #e0e8fa; }
+
+    .ventana-cuerpo { padding: 20px; }
+
+    /* --- Zona para arrastrar el archivo --- */
+    .soltar {
+      border: 2px dashed #a9c2f7;
+      border-radius: 14px;
+      background: #f7faff;
+      padding: 48px 20px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .soltar.encima {
+      border-color: #6D9BF8;
+      background: #eaf1ff;
+    }
+
+    .soltar p { color: #55648a; }
+    .soltar strong { display: block; font-size: 18px; margin-bottom: 6px; color: #1a1a1a; }
+    .soltar small { color: #8592b0; }
+
+    /* --- Área de edición --- */
+    #edicion { display: none; }
+    #edicion.visible { display: block; }
+
+    .escenario {
+      position: relative;
+      background: #11182b;
+      border-radius: 12px;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    .escenario video {
+      width: 100%;
+      display: block;
+    }
+
+    /* Capa oscura con el recuadro de recorte encima del video */
+    .recorte {
+      position: absolute;
+      border: 2px solid #ffffff;
+      /* La sombra gigante oscurece todo lo que queda fuera del recuadro */
+      box-shadow: 0 0 0 9999px rgba(10, 16, 30, 0.55);
+      cursor: move;
+      touch-action: none;
+    }
+
+    .tirador {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #ffffff;
+      border: 2px solid #6D9BF8;
+      border-radius: 4px;
+      touch-action: none;
+    }
+    .tirador.nw { top: -8px;    left: -8px;    cursor: nwse-resize; }
+    .tirador.ne { top: -8px;    right: -8px;   cursor: nesw-resize; }
+    .tirador.sw { bottom: -8px; left: -8px;    cursor: nesw-resize; }
+    .tirador.se { bottom: -8px; right: -8px;   cursor: nwse-resize; }
+
+    .controles {
+      margin-top: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .bloque {
+      border: 1px solid #e6ecf9;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .bloque h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .fila {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .fila label { font-size: 14px; color: #55648a; min-width: 54px; }
+
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: #6D9BF8; }
+
+    .dato {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 14px;
+      min-width: 70px;
+    }
+
+    .acciones {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 18px;
+      cursor: pointer;
+    }
+
+    .btn-principal { background: #6D9BF8; color: #fff; }
+    .btn-principal:hover { background: #5987e6; }
+    .btn-principal:disabled { background: #b9cbf3; cursor: default; }
+
+    .btn-suave { background: #f0f4fd; color: #34426a; }
+    .btn-suave:hover { background: #e2eaf9; }
+
+    .estado {
+      font-size: 14px;
+      color: #55648a;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    .comando {
+      display: none;
+      margin-top: 10px;
+      background: #11182b;
+      color: #d7e2ff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .comando.visible { display: block; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ENCABEZADO -->
+  <header>
+    <nav>
+
+      <div class="menu">
+        <button type="button">Multimedia</button>
+        <ul class="opciones">
+          <li><a href="#" id="abrir-editor">Editor de video simple</a></li>
+          <li><a href="#seccion-1b">Opción 1.2</a></li>
+          <li><a href="#seccion-1c">Opción 1.3</a></li>
+        </ul>
+      </div>
+
+      <div class="menu">
+        <button type="button">Boton 2</button>
+        <ul class="opciones">
+          <li><a href="#seccion-2a">Opción 2.1</a></li>
+          <li><a href="#seccion-2b">Opción 2.2</a></li>
+          <li><a href="#seccion-2c">Opción 2.3</a></li>
+        </ul>
+      </div>
+
+      <div class="menu">
+        <button type="button">Boton 3</button>
+        <ul class="opciones">
+          <li><a href="#seccion-3a">Opción 3.1</a></li>
+          <li><a href="#seccion-3b">Opción 3.2</a></li>
+          <li><a href="#seccion-3c">Opción 3.3</a></li>
+        </ul>
+      </div>
+
+      <div class="menu">
+        <button type="button">Boton 4</button>
+        <ul class="opciones">
+          <li><a href="#seccion-4a">Opción 4.1</a></li>
+          <li><a href="#seccion-4b">Opción 4.2</a></li>
+          <li><a href="#seccion-4c">Opción 4.3</a></li>
+        </ul>
+      </div>
+
+      <div class="menu">
+        <button type="button">Boton 5</button>
+        <ul class="opciones">
+          <li><a href="#seccion-5a">Opción 5.1</a></li>
+          <li><a href="#seccion-5b">Opción 5.2</a></li>
+          <li><a href="#seccion-5c">Opción 5.3</a></li>
+        </ul>
+      </div>
+
+    </nav>
+  </header>
+
+  <!-- CONTENIDO: aquí pones lo tuyo -->
+  <main>
+    <section id="seccion-1b"></section>
+    <section id="seccion-1c"></section>
+    <section id="seccion-2a"></section>
+    <section id="seccion-2b"></section>
+    <section id="seccion-2c"></section>
+    <section id="seccion-3a"></section>
+    <section id="seccion-3b"></section>
+    <section id="seccion-3c"></section>
+    <section id="seccion-4a"></section>
+    <section id="seccion-4b"></section>
+    <section id="seccion-4c"></section>
+    <section id="seccion-5a"></section>
+    <section id="seccion-5b"></section>
+    <section id="seccion-5c"></section>
+  </main>
+
+  <!-- ===========================================================
+       VENTANA DEL EDITOR
+       =========================================================== -->
+  <div class="ventana" id="ventana-editor" role="dialog" aria-modal="true" aria-labelledby="titulo-editor">
+    <div class="ventana-caja">
+
+      <div class="ventana-barra">
+        <h2 id="titulo-editor">Editor de video simple</h2>
+        <button class="cerrar" id="cerrar-editor" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <div class="ventana-cuerpo">
+
+        <!-- Paso 1: cargar el archivo -->
+        <div class="soltar" id="zona-soltar">
+          <p>
+            <strong>Arrastra tu video aquí</strong>
+            o haz clic para buscarlo en tu equipo
+          </p>
+          <small>El archivo no sale de tu computadora: se procesa en el navegador.</small>
+          <input type="file" id="archivo" accept="video/*" hidden>
+        </div>
+
+        <!-- Paso 2: editar -->
+        <div id="edicion">
+
+          <div class="escenario" id="escenario">
+            <video id="video" playsinline></video>
+            <div class="recorte" id="recorte">
+              <span class="tirador nw" data-esquina="nw"></span>
+              <span class="tirador ne" data-esquina="ne"></span>
+              <span class="tirador sw" data-esquina="sw"></span>
+              <span class="tirador se" data-esquina="se"></span>
+            </div>
+          </div>
+
+          <div class="controles">
+
+            <div class="bloque">
+              <h3>Recortar dimensiones</h3>
+              <div class="fila">
+                <span class="dato" id="dato-tamano">—</span>
+                <button class="btn btn-suave" id="reiniciar-recorte" type="button">Usar el cuadro completo</button>
+              </div>
+            </div>
+
+            <div class="bloque">
+              <h3>Recortar duración</h3>
+              <div class="fila">
+                <label for="inicio">Inicio</label>
+                <input type="range" id="inicio" min="0" max="100" step="0.01" value="0">
+                <span class="dato" id="dato-inicio">0:00.00</span>
+              </div>
+              <div class="fila">
+                <label for="fin">Fin</label>
+                <input type="range" id="fin" min="0" max="100" step="0.01" value="100">
+                <span class="dato" id="dato-fin">0:00.00</span>
+              </div>
+              <div class="acciones">
+                <button class="btn btn-suave" id="reproducir" type="button">Ver selección</button>
+                <span class="dato" id="dato-duracion">—</span>
+              </div>
+            </div>
+
+            <div class="bloque">
+              <h3>Guardar</h3>
+              <div class="acciones">
+                <button class="btn btn-principal" id="exportar" type="button">Exportar video</button>
+                <button class="btn btn-suave" id="ver-comando" type="button">Ver comando de ffmpeg</button>
+                <button class="btn btn-suave" id="otro-video" type="button">Cambiar de video</button>
+              </div>
+              <p class="estado" id="estado"></p>
+              <pre class="comando" id="comando"></pre>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    // ---------- Referencias ----------
+    const ventana   = document.getElementById('ventana-editor');
+    const abrir     = document.getElementById('abrir-editor');
+    const cerrar    = document.getElementById('cerrar-editor');
+    const zona      = document.getElementById('zona-soltar');
+    const archivo   = document.getElementById('archivo');
+    const edicion   = document.getElementById('edicion');
+    const escenario = document.getElementById('escenario');
+    const video     = document.getElementById('video');
+    const recorte   = document.getElementById('recorte');
+    const inicio    = document.getElementById('inicio');
+    const fin       = document.getElementById('fin');
+    const estado    = document.getElementById('estado');
+    const comando   = document.getElementById('comando');
+
+    let fichero = null;   // el File original
+    let url = null;       // URL temporal del video
+    // Recuadro de recorte en proporciones 0–1 sobre el video
+    let caja = { x: 0, y: 0, w: 1, h: 1 };
+
+    // ---------- Abrir y cerrar la ventana ----------
+    abrir.addEventListener('click', (e) => {
+      e.preventDefault();
+      ventana.classList.add('abierta');
+    });
+
+    function cerrarVentana() {
+      ventana.classList.remove('abierta');
+      video.pause();
+    }
+
+    cerrar.addEventListener('click', cerrarVentana);
+    ventana.addEventListener('click', (e) => { if (e.target === ventana) cerrarVentana(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarVentana(); });
+
+    // ---------- Arrastrar y soltar ----------
+    zona.addEventListener('click', () => archivo.click());
+    archivo.addEventListener('change', () => { if (archivo.files[0]) cargar(archivo.files[0]); });
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add('encima'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove('encima'); })
+    );
+    zona.addEventListener('drop', (e) => {
+      const f = e.dataTransfer.files[0];
+      if (f) cargar(f);
+    });
+    // Evita que el navegador abra el archivo si se suelta fuera de la zona
+    ['dragover', 'drop'].forEach(ev =>
+      window.addEventListener(ev, (e) => { if (!zona.contains(e.target)) e.preventDefault(); })
+    );
+
+    // ---------- Cargar el video ----------
+    function cargar(f) {
+      if (!f.type.startsWith('video/')) {
+        estado.textContent = 'Ese archivo no es un video.';
+        return;
+      }
+      if (url) URL.revokeObjectURL(url);
+      fichero = f;
+      url = URL.createObjectURL(f);
+      video.src = url;
+      estado.textContent = '';
+      comando.classList.remove('visible');
+
+      video.addEventListener('loadedmetadata', () => {
+        zona.style.display = 'none';
+        edicion.classList.add('visible');
+        caja = { x: 0, y: 0, w: 1, h: 1 };
+        inicio.max = fin.max = video.duration;
+        inicio.value = 0;
+        fin.value = video.duration;
+        video.currentTime = 0;
+        pintar();
+      }, { once: true });
+    }
+
+    document.getElementById('otro-video').addEventListener('click', () => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      edicion.classList.remove('visible');
+      zona.style.display = '';
+      archivo.value = '';
+    });
+
+    // ---------- Recuadro de recorte ----------
+    function pintar() {
+      recorte.style.left   = (caja.x * 100) + '%';
+      recorte.style.top    = (caja.y * 100) + '%';
+      recorte.style.width  = (caja.w * 100) + '%';
+      recorte.style.height = (caja.h * 100) + '%';
+
+      const w = par(caja.w * video.videoWidth);
+      const h = par(caja.h * video.videoHeight);
+      document.getElementById('dato-tamano').textContent =
+        w + ' × ' + h + ' px (original ' + video.videoWidth + ' × ' + video.videoHeight + ')';
+
+      document.getElementById('dato-inicio').textContent = reloj(+inicio.value);
+      document.getElementById('dato-fin').textContent    = reloj(+fin.value);
+      document.getElementById('dato-duracion').textContent = reloj(+fin.value - +inicio.value);
+    }
+
+    // ffmpeg necesita medidas pares para el códec H.264
+    const par = (n) => Math.max(2, Math.round(n / 2) * 2);
+    const tope = (n, min, max) => Math.min(max, Math.max(min, n));
+
+    function reloj(s) {
+      if (!isFinite(s) || s < 0) s = 0;
+      const m = Math.floor(s / 60);
+      const r = (s % 60).toFixed(2).padStart(5, '0');
+      return m + ':' + r;
+    }
+
+    // Arrastre del recuadro y de sus esquinas
+    let arrastre = null;
+
+    recorte.addEventListener('pointerdown', (e) => {
+      const esquina = e.target.dataset.esquina || 'mover';
+      const r = escenario.getBoundingClientRect();
+      arrastre = { esquina, x: e.clientX, y: e.clientY, base: { ...caja }, r };
+      e.target.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    recorte.addEventListener('pointermove', (e) => {
+      if (!arrastre) return;
+      const dx = (e.clientX - arrastre.x) / arrastre.r.width;
+      const dy = (e.clientY - arrastre.y) / arrastre.r.height;
+      const b = arrastre.base;
+      const min = 0.05; // tamaño mínimo del recuadro
+
+      if (arrastre.esquina === 'mover') {
+        caja.x = tope(b.x + dx, 0, 1 - b.w);
+        caja.y = tope(b.y + dy, 0, 1 - b.h);
+      } else {
+        if (arrastre.esquina.includes('w')) {
+          const nx = tope(b.x + dx, 0, b.x + b.w - min);
+          caja.w = b.w + (b.x - nx);
+          caja.x = nx;
+        }
+        if (arrastre.esquina.includes('e')) {
+          caja.w = tope(b.w + dx, min, 1 - b.x);
+        }
+        if (arrastre.esquina.includes('n')) {
+          const ny = tope(b.y + dy, 0, b.y + b.h - min);
+          caja.h = b.h + (b.y - ny);
+          caja.y = ny;
+        }
+        if (arrastre.esquina.includes('s')) {
+          caja.h = tope(b.h + dy, min, 1 - b.y);
+        }
+      }
+      pintar();
+    });
+
+    recorte.addEventListener('pointerup', () => { arrastre = null; });
+
+    document.getElementById('reiniciar-recorte').addEventListener('click', () => {
+      caja = { x: 0, y: 0, w: 1, h: 1 };
+      pintar();
+    });
+
+    // ---------- Recorte de duración ----------
+    inicio.addEventListener('input', () => {
+      if (+inicio.value > +fin.value - 0.1) inicio.value = +fin.value - 0.1;
+      video.currentTime = +inicio.value;
+      pintar();
+    });
+
+    fin.addEventListener('input', () => {
+      if (+fin.value < +inicio.value + 0.1) fin.value = +inicio.value + 0.1;
+      video.currentTime = +fin.value;
+      pintar();
+    });
+
+    document.getElementById('reproducir').addEventListener('click', () => {
+      video.currentTime = +inicio.value;
+      video.play();
+    });
+
+    // Detiene la reproducción al llegar al punto final elegido
+    video.addEventListener('timeupdate', () => {
+      if (!video.paused && video.currentTime >= +fin.value) video.pause();
+    });
+
+    // ---------- El comando que hace el trabajo ----------
+    function argumentos(nombreEntrada, nombreSalida) {
+      const hayCorteEspacial = caja.w < 0.999 || caja.h < 0.999;
+      const args = ['-ss', (+inicio.value).toFixed(2), '-to', (+fin.value).toFixed(2), '-i', nombreEntrada];
+
+      if (hayCorteEspacial) {
+        const w = par(caja.w * video.videoWidth);
+        const h = par(caja.h * video.videoHeight);
+        const x = par(caja.x * video.videoWidth);
+        const y = par(caja.y * video.videoHeight);
+        // Recortar obliga a volver a codificar el video; -crf 18 conserva
+        // prácticamente toda la calidad. El audio se copia tal cual.
+        args.push('-vf', 'crop=' + w + ':' + h + ':' + x + ':' + y,
+                  '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+                  '-pix_fmt', 'yuv420p', '-c:a', 'copy');
+      } else {
+        // Sin recorte de imagen: se copian video y audio sin tocarlos.
+        args.push('-c', 'copy');
+      }
+      args.push('-movflags', '+faststart', nombreSalida);
+      return args;
+    }
+
+    document.getElementById('ver-comando').addEventListener('click', () => {
+      if (!fichero) return;
+      comando.textContent = 'ffmpeg ' + argumentos('"' + fichero.name + '"', '"recortado.mp4"').join(' ');
+      comando.classList.add('visible');
+    });
+
+    // ---------- Exportar con ffmpeg.wasm ----------
+    let ffmpeg = null;
+
+    async function cargarFfmpeg() {
+      if (ffmpeg) return ffmpeg;
+      estado.textContent = 'Descargando el motor de video (unos 30 MB la primera vez)…';
+      await script('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+      await script('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js');
+      const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+      ffmpeg = new FFmpegWASM.FFmpeg();
+      ffmpeg.on('progress', ({ progress }) => {
+        estado.textContent = 'Procesando… ' + Math.min(100, Math.round(progress * 100)) + '%';
+      });
+      await ffmpeg.load({
+        coreURL: await FFmpegUtil.toBlobURL(base + '/ffmpeg-core.js', 'text/javascript'),
+        wasmURL: await FFmpegUtil.toBlobURL(base + '/ffmpeg-core.wasm', 'application/wasm')
+      });
+      return ffmpeg;
+    }
+
+    function script(src) {
+      return new Promise((ok, mal) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = ok;
+        s.onerror = () => mal(new Error('No se pudo cargar ' + src));
+        document.head.appendChild(s);
+      });
+    }
+
+    document.getElementById('exportar').addEventListener('click', async (e) => {
+      if (!fichero) return;
+      const boton = e.currentTarget;
+      boton.disabled = true;
+      try {
+        const ff = await cargarFfmpeg();
+        const entrada = 'entrada' + (fichero.name.match(/\.[a-z0-9]+$/i) || ['.mp4'])[0];
+        await ff.writeFile(entrada, await FFmpegUtil.fetchFile(fichero));
+        estado.textContent = 'Procesando…';
+        await ff.exec(argumentos(entrada, 'salida.mp4'));
+        const datos = await ff.readFile('salida.mp4');
+        const enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(new Blob([datos.buffer], { type: 'video/mp4' }));
+        enlace.download = 'recortado.mp4';
+        enlace.click();
+        estado.textContent = 'Listo, revisa tus descargas.';
+      } catch (err) {
+        estado.textContent = 'No se pudo exportar aquí (' + err.message +
+          '). Usa el botón "Ver comando de ffmpeg" y ejecútalo en tu terminal.';
+      } finally {
+        boton.disabled = false;
+      }
+    });
+  })();
+  </script>
+
+</body>
+</html>
